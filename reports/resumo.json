@@ -1,0 +1,148 @@
+{
+  "periodo_12m": [
+    "2025-11-01",
+    "2026-11-01"
+  ],
+  "corte_gwh_12m": 39145.3,
+  "pct_perdida_12m": 21.74,
+  "valor_cmo_rs_mi_12m": 2493.9,
+  "por_fonte_12m": [
+    {
+      "fonte": "eolica",
+      "corte_gwh": 26403.34,
+      "potencial_gwh": 129950.87,
+      "valor_cmo_rs_mi": 2040.76,
+      "n_usinas": 157,
+      "pct_perdida": 20.32
+    },
+    {
+      "fonte": "solar",
+      "corte_gwh": 12741.92,
+      "potencial_gwh": 50122.21,
+      "valor_cmo_rs_mi": 453.1,
+      "n_usinas": 86,
+      "pct_perdida": 25.42
+    }
+  ],
+  "por_razao_12m": [
+    {
+      "razao": "CNF",
+      "corte_gwh": 8066.47,
+      "potencial_gwh": 20703.44,
+      "valor_cmo_rs_mi": 1225.24,
+      "n_usinas": 228,
+      "pct_perdida": 38.96,
+      "descricao": "Confiabilidade elétrica"
+    },
+    {
+      "razao": "ENE",
+      "corte_gwh": 27205.17,
+      "potencial_gwh": 66414.99,
+      "valor_cmo_rs_mi": 808.0,
+      "n_usinas": 243,
+      "pct_perdida": 40.96,
+      "descricao": "Razão energética (sobra de energia)"
+    },
+    {
+      "razao": "NI",
+      "corte_gwh": 0.0,
+      "potencial_gwh": 0.2,
+      "valor_cmo_rs_mi": 0.0,
+      "n_usinas": 1,
+      "pct_perdida": 0.0,
+      "descricao": "Não informada"
+    },
+    {
+      "razao": "REL",
+      "corte_gwh": 3873.62,
+      "potencial_gwh": 6555.63,
+      "valor_cmo_rs_mi": 460.61,
+      "n_usinas": 230,
+      "pct_perdida": 59.09,
+      "descricao": "Indisponibilidade externa (elétrica)"
+    }
+  ],
+  "anual": [
+    {
+      "ano": 2021,
+      "fonte": "eolica",
+      "corte_gwh": 27.15,
+      "potencial_gwh": 18049.92,
+      "valor_cmo_rs_mi": 3.62,
+      "n_usinas": 135,
+      "pct_perdida": 0.15
+    },
+    {
+      "ano": 2022,
+      "fonte": "eolica",
+      "corte_gwh": 400.29,
+      "potencial_gwh": 77605.84,
+      "valor_cmo_rs_mi": 9.24,
+      "n_usinas": 157,
+      "pct_perdida": 0.52
+    },
+    {
+      "ano": 2023,
+      "fonte": "eolica",
+      "corte_gwh": 3409.34,
+      "potencial_gwh": 94774.8,
+      "valor_cmo_rs_mi": 10.69,
+      "n_usinas": 164,
+      "pct_perdida": 3.6
+    },
+    {
+      "ano": 2024,
+      "fonte": "eolica",
+      "corte_gwh": 9548.06,
+      "potencial_gwh": 112221.82,
+      "valor_cmo_rs_mi": 809.96,
+      "n_usinas": 173,
+      "pct_perdida": 8.51
+    },
+    {
+      "ano": 2024,
+      "fonte": "solar",
+      "corte_gwh": 3254.42,
+      "potencial_gwh": 24302.41,
+      "valor_cmo_rs_mi": 151.41,
+      "n_usinas": 65,
+      "pct_perdida": 13.39
+    },
+    {
+      "ano": 2025,
+      "fonte": "eolica",
+      "corte_gwh": 26216.93,
+      "potencial_gwh": 137291.54,
+      "valor_cmo_rs_mi": 2408.5,
+      "n_usinas": 162,
+      "pct_perdida": 19.1
+    },
+    {
+      "ano": 2025,
+      "fonte": "solar",
+      "corte_gwh": 11000.35,
+      "potencial_gwh": 42722.37,
+      "valor_cmo_rs_mi": 816.21,
+      "n_usinas": 73,
+      "pct_perdida": 25.75
+    },
+    {
+      "ano": 2026,
+      "fonte": "eolica",
+      "corte_gwh": 22248.0,
+      "potencial_gwh": 108868.21,
+      "valor_cmo_rs_mi": 1397.84,
+      "n_usinas": 157,
+      "pct_perdida": 20.44
+    },
+    {
+      "ano": 2026,
+      "fonte": "solar",
+      "corte_gwh": 11090.19,
+      "potencial_gwh": 42312.13,
+      "valor_cmo_rs_mi": 273.0,
+      "n_usinas": 86,
+      "pct_perdida": 26.21
+    }
+  ]
+}
