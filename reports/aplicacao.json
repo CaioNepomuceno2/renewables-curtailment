@@ -1,0 +1,15 @@
+{
+  "frac_corte_7h_15h": 0.8012,
+  "n_conjuntos_listados": 15,
+  "frac_corte_top15_conjuntos": 0.2248,
+  "n_top15_perda_acima_25pct": 10,
+  "previsor": {
+    "n_dias_teste": 488,
+    "corte_medio_real_gwh_dia": 119.6,
+    "corte_medio_real_top20pct_gwh_dia": 223.8,
+    "frac_corte_total_nos_top20pct_dias": 0.3758,
+    "mae_modelo_gwh_dia": 30.7,
+    "mae_persistencia_gwh_dia": 46.8,
+    "reducao_erro_gwh_dia": 16.1
+  }
+}
