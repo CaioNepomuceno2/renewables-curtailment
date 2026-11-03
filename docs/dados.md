@@ -1,6 +1,7 @@
 # Decisões de dados
 
-Registro das escolhas de tratamento que afetam os resultados.
+Registro das escolhas de tratamento que afetam os resultados. O raciocínio, as fórmulas e o desenho da
+validação estão em [`metodologia.md`](metodologia.md).
 
 ## Fontes (ONS, dados abertos)
 
