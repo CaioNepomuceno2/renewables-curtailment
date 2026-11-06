@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from curtailment import build, ons, previsao
+from curtailment import analise, build, ons, previsao
 
 
 def test_energia_cortada_so_conta_patamares_limitados():
@@ -90,3 +90,14 @@ def test_metricas_skill_e_auc():
     m = previsao.metricas(real, real.copy(), ref_mae=5.0, limiar=pd.Series([15.0] * 4))
     assert m["mae_gwh"] == 0 and m["skill_vs_persistencia"] == 1
     assert m["auc_dia_alto"] == 1.0
+
+
+def test_cobertura_cmo(tmp_path):
+    p = tmp_path / "semi.parquet"
+    d = pd.DataFrame({"corte_mwh": [10.0, 30.0, 10.0], "cmo_rs_mwh": [100.0, 200.0, None]})
+    d["valor_cmo_rs"] = d.corte_mwh * d.cmo_rs_mwh
+    d.to_parquet(p)
+    r = analise.cobertura_cmo(p)
+    # 10 dos 50 MWh não têm CMO; a média ponderada usa só os 40 MWh que têm: (10 x 100 + 30 x 200) / 40
+    assert r["pct_corte_sem_cmo"] == pytest.approx(20.0)
+    assert r["cmo_medio_ponderado_rs_mwh"] == pytest.approx(175.0)
