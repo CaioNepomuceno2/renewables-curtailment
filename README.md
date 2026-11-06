@@ -19,8 +19,8 @@ com a geração verificada, a geração de referência (o que a usina poderia ge
 
 | | Eólica | Solar | Total |
 |---|---|---|---|
-| Energia cortada | 26,4 TWh | 12,7 TWh | **39,1 TWh** |
-| % da geração possível (verificada + cortada) | 20,3% | 25,4% | **21,7%** |
+| Energia cortada | 26,5 TWh | 12,8 TWh | **39,3 TWh** |
+| % da geração possível (verificada + cortada) | 20,4% | 25,5% | **21,8%** |
 | Valor pelo CMO do subsistema no instante do corte | R$ 2,04 bi | R$ 0,45 bi | **R$ 2,49 bi** |
 
 ![evolução mensal](reports/figures/01_evolucao_mensal.png)
@@ -37,7 +37,7 @@ O corte era residual até 2022 (0,5% da eólica) e explodiu a partir do 2º seme
 | 2023 | 3,4 TWh | 3,6% | R$ 0,01 bi |
 | 2024 (solar a partir de abr) | 12,8 TWh | 9,4% | R$ 0,96 bi |
 | 2025 | 37,2 TWh | 20,7% | R$ 3,22 bi |
-| 2026 (jan a out) | 33,3 TWh | 22,1% | R$ 1,67 bi |
+| 2026 (jan a out) | 33,5 TWh | 22,1% | R$ 1,67 bi |
 
 ### 2. Onde e por quê
 
@@ -49,7 +49,7 @@ O corte era residual até 2022 (0,5% da eólica) e explodiu a partir do 2º seme
 * Pelo próprio dicionário de dados do ONS, **só o corte REL tem a geração de referência final enviada à CCEE**
   para apuração de encargos (ESS) por constrained-off. Ou seja, cerca de 90% da energia cortada nos últimos 12
   meses (ENE e CNF) fica fora desse caminho de ressarcimento.
-* **O Nordeste concentra 82% do corte** (31,9 TWh). O Rio Grande do Norte sozinho perdeu 11,8 TWh de eólica,
+* **O Nordeste concentra 81% do corte** (32,0 TWh). O Rio Grande do Norte sozinho perdeu 11,8 TWh de eólica,
   **31% da sua geração eólica possível**. Minas Gerais lidera a solar (4,9 TWh).
 * Os conjuntos mais afetados perderam entre 12% e 49% da geração possível:
 
@@ -74,28 +74,28 @@ um modelo treinado só com os dias anteriores. São 488 dias (jul/2025 a out/202
 
 | Método (jul/2025 a out/2026) | Erro médio (GWh/dia) | Ganho sobre a persistência | AUC "dia de corte alto" |
 |---|---|---|---|
-| **Modelo com informação de D-1** | **30,7** | **34%** | **0,91** |
-| Persistência (o corte de ontem) | 46,8 | - | 0,83 |
-| Média dos últimos 7 dias | 53,5 | -14% | 0,74 |
-| Corte programado no PDP, sozinho | 74,4 | -59% | 0,91 |
-| Modelo estrito, com realizados só até D-2 | 31,3 | 50% (sobre a persistência de D-2, 63,3) | 0,91 |
+| **Modelo com informação de D-1** | **30,6** | **35%** | **0,91** |
+| Persistência (o corte de ontem) | 46,9 | - | 0,83 |
+| Média dos últimos 7 dias | 53,6 | -14% | 0,74 |
+| Corte programado no PDP, sozinho | 74,6 | -59% | 0,91 |
+| Modelo estrito, com realizados só até D-2 | 31,2 | 51% (sobre a persistência de D-2, 63,4) | 0,91 |
 
 * **O PDP subestima o corte em 62%:** a programação do dia anterior prevê só 38% da energia que acaba
   sendo cortada em tempo real. Mas ela ordena bem os dias (AUC de 0,91), e por isso é a variável mais
   importante do modelo (57% do ganho), que aprende a corrigir a escala.
 * Nos 20% de dias com maior previsão, 95% foram de fato dias de corte alto (acima do 3º quartil do treino),
   contra 45% na média.
-* A carga programada quase não ajuda (39,7 contra 38,1 GWh/dia sem o PDP); o que carrega informação é o
+* A carga programada quase não ajuda (39,8 contra 38,2 GWh/dia sem o PDP); o que carrega informação é o
   próprio programa de eólicas e solares.
 
 **O que isso significa:** na véspera já dá para saber, com boa confiança, se amanhã será um dia de corte
-alto. Os 20% de dias que o modelo aponta como piores tiveram corte médio de 223,8 GWh/dia, quase o dobro da
-média (119,6), e concentraram 38% de toda a energia cortada no período de teste.
+alto. Os 20% de dias que o modelo aponta como piores tiveram corte médio de 224,1 GWh/dia, quase o dobro da
+média (119,8), e concentraram 38% de toda a energia cortada no período de teste.
 
 ## Na prática: o que muda para quem decide
 
 ### O problema hoje
-* **Gerador e investidor:** 21,7% da geração eólica e solar possível foi cortada nos últimos 12 meses, e em
+* **Gerador e investidor:** 21,8% da geração eólica e solar possível foi cortada nos últimos 12 meses, e em
   10 dos 15 conjuntos mais afetados a perda passou de 25%. Quem tem um parque no RN ou no norte de MG vê a
   receita cair sem saber, com antecedência, quanto e em que dias.
 * **Comercializadora e área de contratos:** energia vendida em contrato e não gerada por corte precisa ser
@@ -110,10 +110,10 @@ média (119,6), e concentraram 38% de toda a energia cortada no período de test
 
 | Ganho | Quanto | De onde vem o número |
 |---|---|---|
-| Saber quanto está sendo perdido, por usina/conjunto, razão e hora | 39,1 TWh em 12 meses; 80% entre 7h e 15h; top 15 conjuntos = 22% do total | **Medido** nos dados do ONS (`reports/resumo.json`, `reports/aplicacao.json`) |
-| Prever o corte de amanhã com menos erro | 30,7 contra 46,8 GWh/dia da persistência: **16,1 GWh/dia a menos de erro (−34%)** | **Medido** no backtest fora da amostra, 488 dias (`reports/previsao.json`) |
+| Saber quanto está sendo perdido, por usina/conjunto, razão e hora | 39,3 TWh em 12 meses; 80% entre 7h e 15h; top 15 conjuntos = 23% do total | **Medido** nos dados do ONS (`reports/resumo.json`, `reports/aplicacao.json`) |
+| Prever o corte de amanhã com menos erro | 30,6 contra 46,9 GWh/dia da persistência: **16,3 GWh/dia a menos de erro (−35%)** | **Medido** no backtest fora da amostra, 488 dias (`reports/previsao.json`) |
 | Identificar os dias de corte alto na véspera | 95% de acerto nos 20% de dias apontados (taxa média de 45%); AUC de 0,91 | **Medido** no backtest |
-| Colocar manutenção nos dias que já seriam cortados | Os dias apontados têm corte médio de 223,8 GWh/dia, contra 119,6 na média | **Medido** no backtest (`reports/aplicacao.json`); o ganho em R$ depende da usina |
+| Colocar manutenção nos dias que já seriam cortados | Os dias apontados têm corte médio de 224,1 GWh/dia, contra 119,8 na média | **Medido** no backtest (`reports/aplicacao.json`); o ganho em R$ depende da usina |
 | Ordem de grandeza do valor para o sistema | R$ 2,49 bi em 12 meses pelo CMO; R$ 3,9 bi a cada R$ 100/MWh | **Estimativa**: valoração pelo CMO, não perda de receita das usinas |
 
 O valor financeiro para uma usina específica não está calculado aqui: ele depende do contrato, do preço de
@@ -168,8 +168,8 @@ Detalhes em [`docs/dados.md`](docs/dados.md). As principais:
   patamares limitados.
 * **Valoração pelo CMO**, o custo marginal de operação semi-horário do subsistema no instante do corte. É
   o valor da energia para o sistema, e é baixo justamente quando sobra energia: a média ponderada nos últimos
-  12 meses foi de R$ 64,6/MWh, e em 2023 ficou perto de zero. Não é a perda de receita das usinas, que depende
-  de contratos e do ressarcimento. Como régua: **a cada R$ 100/MWh, os 39,1 TWh valem R$ 3,9 bi.** Faltou
+  12 meses foi de R$ 64,5/MWh, e em 2023 ficou perto de zero. Não é a perda de receita das usinas, que depende
+  de contratos e do ressarcimento. Como régua: **a cada R$ 100/MWh, os 39,3 TWh valem R$ 3,9 bi.** Faltou
   CMO para 1,4% da energia cortada nos últimos 12 meses, que entrou com valor zero.
 * **Previsão x programado do PDP:** o nome da usina no PDP não identifica a fonte de forma confiável, então
   uso o agregado eólica + solar. O corte programado é a soma de `max(previsão - programado, 0)` por usina.
@@ -209,7 +209,7 @@ pytest
 * **Valoração pelo CMO é um piso para o sistema**, não a perda financeira das usinas.
 * **Disponibilidade dos dados para quem não é o ONS:** o corte realizado de D-1 e o PDP existem em D-1 na
   operação, mas os arquivos abertos são publicados depois. Por isso a variante estrita usa realizados só até
-  D-2. Ela quase não perde desempenho (31,3 contra 30,7 GWh/dia).
+  D-2. Ela quase não perde desempenho (31,2 contra 30,6 GWh/dia).
 * **O modelo subestima o total** (viés de -13% no período de teste), porque o corte cresceu ao longo do
   período e árvores de decisão não extrapolam tendência. Para ranquear dias isso pesa pouco; para estimar
   energia, vale calibrar o nível.

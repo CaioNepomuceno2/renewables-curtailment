@@ -61,7 +61,7 @@ Usar `verificada + cortada` evita depender da geração de referência fora das 
 **Valor pelo CMO.** Para cada semi-hora, `corte[u,t] × CMO[subsistema(u), t]`. O CMO é o custo marginal de
 operação do sistema e fica baixo justamente quando sobra energia, então esse valor é um **piso** para o
 sistema, não a perda de receita das usinas (que depende de contratos, PLD e ressarcimento). A régua "a cada
-R$ 100/MWh, os 39,1 TWh valem R$ 3,9 bi" é só multiplicação, para quem quiser usar outro preço.
+R$ 100/MWh, os 39,3 TWh valem R$ 3,9 bi" é só multiplicação, para quem quiser usar outro preço.
 
 **Previsor do dia seguinte.** Alvo: corte total (eólica + solar) do SIN no dia D, em GWh. Modelo LightGBM
 de regressão (`previsao.PARAMS`: 400 árvores, taxa 0,03, 15 folhas), média de 3 sementes.
@@ -79,8 +79,8 @@ Features (`previsao.features`):
 **Métricas** (`previsao.metricas`):
 
 * **Erro médio absoluto (MAE):** média de |real − previsto|, em GWh/dia.
-* **Ganho sobre a persistência (skill):** `1 − MAE_modelo / MAE_persistência`. 34% quer dizer que o erro
-  médio do modelo é 34% menor que o de "amanhã igual a hoje".
+* **Ganho sobre a persistência (skill):** `1 − MAE_modelo / MAE_persistência`. 35% quer dizer que o erro
+  médio do modelo é 35% menor que o de "amanhã igual a hoje".
 * **Viés:** `soma(previsto) / soma(real) − 1`. Negativo quer dizer que o modelo subestima o total.
 * **Dia de corte alto:** dia com corte acima do 3º quartil do treino daquele mês.
 * **AUC:** probabilidade de o modelo dar uma previsão maior a um dia de corte alto do que a um dia comum
@@ -95,7 +95,7 @@ Features (`previsao.features`):
   daquele mês. São 488 dias de teste, nenhum visto no treino.
 * **O que é conhecido em D-1:** o corte realizado de D-1 é conhecido pelo ONS em tempo real, mas quem não é o
   ONS recebe os arquivos depois. Por isso há a variante **estrita**, que só usa realizados até D-2. Ela quase
-  não perde desempenho (31,3 contra 30,7 GWh/dia), o que mostra que o resultado não depende de dados que um
+  não perde desempenho (31,2 contra 30,6 GWh/dia), o que mostra que o resultado não depende de dados que um
   agente externo não teria.
 * **Sem vazamento:** `tests/test_curtailment.py` verifica que nenhuma feature de realizados usa o próprio
   dia D e que os dados ex-ante entram só para o dia a que se referem.
@@ -116,8 +116,8 @@ Features (`previsao.features`):
 ## 7. Sensibilidade
 
 * **Preço:** a régua de R$ 3,9 bi a cada R$ 100/MWh permite trocar o CMO por qualquer outro preço.
-* **Dados disponíveis em D-1:** realizados até D-1 (30,7 GWh/dia) ou até D-2 (31,3 GWh/dia).
-* **Grupos de features:** só histórico (38,1), histórico + carga (39,7), histórico + carga + PDP (30,7). O
+* **Dados disponíveis em D-1:** realizados até D-1 (30,6 GWh/dia) ou até D-2 (31,2 GWh/dia).
+* **Grupos de features:** só histórico (38,2), histórico + carga (39,8), histórico + carga + PDP (30,6). O
   ganho vem do PDP; a carga programada não ajuda.
 
 ## 8. Como interpretar

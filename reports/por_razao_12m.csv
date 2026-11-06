@@ -1,5 +1,5 @@
 razao,corte_gwh,potencial_gwh,valor_cmo_rs_mi,n_usinas,pct_perdida,descricao
-CNF,8066.473,20703.4389,1225.2442,228,38.962,Confiabilidade elétrica
-ENE,27205.1671,66414.9851,808.0038,243,40.9624,Razão energética (sobra de energia)
+CNF,8068.4241,20705.2715,1225.2651,228,38.968,Confiabilidade elétrica
+ENE,27258.3069,66470.2025,808.0308,243,41.0083,Razão energética (sobra de energia)
 NI,0.0,0.1963,0.0,1,0.0,Não informada
-REL,3873.6217,6555.6259,460.6082,230,59.0885,Indisponibilidade externa (elétrica)
+REL,3936.7998,6618.2577,461.5667,230,59.4839,Indisponibilidade externa (elétrica)
