@@ -7,6 +7,10 @@ Enquadramento: no fim do dia D-1, prever a energia cortada no dia D (GWh). Duas 
   ``estrita`` que só usa realizados até D-2;
 * **ex-ante para D** (carga programada e previsão x programado de eólicas/solares do PDP): é produzida na
   programação diária feita em D-1 para o dia D, então pode entrar sem defasagem.
+
+Calibração de nível (``fator_calibracao`` e ``calibrar_nivel``): árvores de decisão não extrapolam a
+tendência, então o modelo subestima o total quando o corte cresce. O fator corrige o nível sem mexer na
+ordem dos dias e usa só previsões fora da amostra de dias anteriores ao mês previsto.
 """
 from __future__ import annotations
 
@@ -19,6 +23,12 @@ import pandas as pd
 from sklearn.metrics import roc_auc_score
 
 ALVO = "corte_gwh"
+
+# Calibração de nível. Valores fixados antes de olhar o período de teste (ver README, "Calibração de nível").
+JANELA_CALIBRACAO = 90         # dias de previsões fora da amostra usados para estimar o fator
+MIN_DIAS_CALIBRACAO = 60       # com menos dias que isso o fator é 1 (sem calibrar)
+LIMITES_FATOR = (0.5, 2.0)     # trava de segurança; não é ajustada
+PISO_MAPE_GWH = 10.0           # o MAPE ignora dias com corte real abaixo disso (o erro % explode)
 
 
 def tabela_diaria(diario: pd.DataFrame, razao: pd.DataFrame, carga: pd.DataFrame | None,
@@ -80,7 +90,8 @@ class Resultado:
 
 
 def backtest(t: pd.DataFrame, cols: list[str], inicio_teste: str, fim_teste: str,
-             inicio_treino: str, defasagem_min: int = 1, seed: int = 0) -> pd.DataFrame:
+             inicio_treino: str, defasagem_min: int = 1, seed: int = 0,
+             params: dict | None = None) -> pd.DataFrame:
     """Origem móvel mensal: para cada mês de teste, treina com todos os dias anteriores ao mês."""
     F = features(t, defasagem_min)[cols]
     y = t[ALVO]
@@ -92,11 +103,47 @@ def backtest(t: pd.DataFrame, cols: list[str], inicio_teste: str, fim_teste: str
         te = (F.index >= ini) & (F.index <= fim)
         if te.sum() == 0:
             continue
-        mdl = lgb.LGBMRegressor(random_state=seed, **PARAMS).fit(F[tr], y[tr])
+        mdl = lgb.LGBMRegressor(random_state=seed, **(params or PARAMS)).fit(F[tr], y[tr])
         p = pd.DataFrame({"real": y[te], "pred": np.clip(mdl.predict(F[te]), 0, None)}, index=F.index[te])
         p["limiar_alto"] = np.nanpercentile(y[tr], 75)
         out.append(p)
     return pd.concat(out)
+
+
+def fator_calibracao(oos: pd.DataFrame, ultimo_dia, janela: int = JANELA_CALIBRACAO,
+                     min_dias: int = MIN_DIAS_CALIBRACAO, limites: tuple[float, float] = LIMITES_FATOR) -> float:
+    """Fator de nível: soma(real) / soma(previsto) nos ``janela`` dias que terminam em ``ultimo_dia``.
+
+    ``oos`` tem uma linha por dia (índice = dia) com as colunas ``real`` e ``pred``, onde ``pred`` é a
+    previsão feita **fora da amostra** (por um modelo treinado só com dias anteriores àquele dia). Só
+    entram dias até ``ultimo_dia`` (inclusive). Razão de somas, e não média de razões, para que dias de
+    corte baixo não dominem. Com menos de ``min_dias`` dias na janela o fator é 1 (sem calibrar).
+    """
+    ultimo = pd.Timestamp(ultimo_dia)
+    j = oos.loc[(oos.index > ultimo - pd.Timedelta(days=janela)) & (oos.index <= ultimo), ["real", "pred"]]
+    j = j.dropna()
+    if len(j) < min_dias or j.pred.sum() <= 0:
+        return 1.0
+    return float(np.clip(j.real.sum() / j.pred.sum(), *limites))
+
+
+def calibrar_nivel(oos: pd.DataFrame, inicio: str, fim: str, defasagem_min: int = 1,
+                   janela: int = JANELA_CALIBRACAO, min_dias: int = MIN_DIAS_CALIBRACAO,
+                   limites: tuple[float, float] = LIMITES_FATOR) -> pd.DataFrame:
+    """Aplica o fator de nível mês a mês às previsões de ``inicio`` a ``fim``.
+
+    O fator de cada mês usa só dias até ``primeiro dia do mês - defasagem_min`` (D-1, ou D-2 na variante
+    estrita), que é o que já se conhece quando o mês começa. O fator é o mesmo em todos os dias do mês,
+    então a ordem dos dias dentro do mês não muda. Devolve ``pred`` (original), ``fator`` e ``pred_cal``.
+    """
+    alvo = oos.loc[inicio:fim, ["pred"]].copy()
+    alvo["fator"] = 1.0
+    for m in pd.period_range(inicio, fim, freq="M"):
+        ultimo = m.start_time - pd.Timedelta(days=defasagem_min)
+        no_mes = (alvo.index >= m.start_time) & (alvo.index <= m.end_time)
+        alvo.loc[no_mes, "fator"] = fator_calibracao(oos, ultimo, janela, min_dias, limites)
+    alvo["pred_cal"] = alvo.pred * alvo.fator
+    return alvo
 
 
 def baselines(t: pd.DataFrame, idx: pd.Index, defasagem_min: int = 1) -> pd.DataFrame:
@@ -109,10 +156,16 @@ def metricas(real: pd.Series, pred: pd.Series, ref_mae: float | None = None,
              limiar: pd.Series | None = None) -> dict:
     ok = real.notna() & pred.notna()
     real, pred = real[ok], pred[ok]
-    mae = float(np.mean(np.abs(real - pred)))
+    erro = np.abs(real - pred)
+    mae = float(np.mean(erro))
+    grande = real >= PISO_MAPE_GWH
     out = {"mae_gwh": mae, "rmse_gwh": float(np.sqrt(np.mean((real - pred) ** 2))),
            "vies_pct": float(100 * (pred.sum() / real.sum() - 1)),
-           "correlacao": float(np.corrcoef(real, pred)[0, 1])}
+           "wape_pct": float(100 * erro.sum() / real.sum()),
+           "mape_pct": float(100 * np.mean(erro[grande] / real[grande])) if grande.any() else float("nan"),
+           "mape_n_dias": int(grande.sum()),
+           "correlacao": float(np.corrcoef(real, pred)[0, 1]),
+           "spearman": float(real.corr(pred, method="spearman"))}
     if ref_mae is not None:
         out["skill_vs_persistencia"] = 1 - mae / ref_mae
     if limiar is not None:

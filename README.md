@@ -175,6 +175,36 @@ Detalhes em [`docs/dados.md`](docs/dados.md). As principais:
 * **Previsão x programado do PDP:** o nome da usina no PDP não identifica a fonte de forma confiável, então
   uso o agregado eólica + solar. O corte programado é a soma de `max(previsão - programado, 0)` por usina.
 
+### Calibração de nível (método fixado antes de rodar o teste)
+
+O previsor subestima o total porque o corte cresceu e as árvores de decisão não extrapolam tendência. A
+correção escolhida é um **fator de nível por mês**, estimado só com previsões fora da amostra. O modelo
+original continua no repositório, lado a lado com o calibrado.
+
+* **Fator = soma do real / soma do previsto** nos 90 dias que terminam em D-1 do primeiro dia do mês (em
+  D-2 na variante estrita). Cada um desses dias foi previsto por um modelo treinado só com dias anteriores
+  a ele, no mesmo backtest de origem móvel. O fator multiplica todas as previsões do mês e muda quando o
+  modelo é retreinado.
+* **Aquecimento:** para o primeiro mês de teste já ter previsões fora da amostra com que estimar o fator, o
+  backtest roda desde jan/2025. Esses meses não entram em nenhuma métrica, e as previsões de jul/2025 em
+  diante não mudam por causa disso, porque cada mês é previsto só com dias anteriores a ele.
+* **Por que não prever a razão sobre uma média móvel defasada:** isso mudaria o que as árvores aprendem e
+  obrigaria a reescalar também as variáveis do PDP, que crescem junto, e a comparação com o original deixaria
+  de ser lado a lado. O fator, ao contrário, mede o erro que o modelo de fato cometeu fora da amostra, inclusive
+  nos dias de corte alto em que as árvores saturam. E como ele é o mesmo em todo o mês, a ordem dos dias
+  dentro do mês não muda.
+* **Parâmetros fixados antes de ver o resultado no teste:** janela de 90 dias (cerca de 13 semanas
+  completas, o que tira o efeito do dia da semana), mínimo de 60 dias com previsão (com menos, o fator é 1),
+  trava do fator em [0,5; 2,0] e piso de 10 GWh/dia para o MAPE (abaixo disso o erro percentual explode).
+  `reports/previsao_calibracao_sensibilidade.csv` mostra outras janelas só para checar a robustez; o padrão
+  não é trocado por causa dele.
+* **Regra de aceite, também fixada antes:** o calibrado só vira o padrão para estimar energia se, nas duas
+  variantes (D-1 e D-2), o viés cair em módulo, o Spearman e a AUC não caírem mais de 0,005 e o MAE não subir
+  mais de 1 GWh/dia. Se alguma condição falhar, o padrão fica como estava e o resultado é publicado assim
+  mesmo.
+* **Limite conhecido:** o centro da janela fica cerca de dois meses antes do meio do mês previsto. Se o
+  viés do modelo mudar de nível rápido, o fator chega atrasado.
+
 ## Estrutura
 
 ```
@@ -182,10 +212,11 @@ src/curtailment/
   ons.py        download (CKAN + S3 do ONS, API de carga programada), arquivos enxutos em parquet
   build.py      energia cortada e valoração pelo CMO (base semi-horária por usina)
   analise.py    totais por ano, fonte, razão, UF, subsistema, conjunto e hora
-  previsao.py   features com corte temporal, backtest de origem móvel, baselines e métricas
+  previsao.py   features com corte temporal, backtest de origem móvel, calibração de nível, baselines e métricas
 scripts/        01_download, 02_build, 03_analyze, 04_forecast, 05_figures, 06_aplicacao
 reports/        tabelas (CSV/JSON) e figuras
-tests/          energia cortada, valoração, agregação do PDP e ausência de vazamento nas features
+tests/          energia cortada, valoração, agregação do PDP, ausência de vazamento nas features,
+                calibração de nível (só dados anteriores ao mês) e teste de fumaça do núcleo do previsor
 ```
 
 ## Reproduzir

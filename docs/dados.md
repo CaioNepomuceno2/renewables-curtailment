@@ -53,3 +53,6 @@ A fração sem CMO e o CMO médio ponderado (R$ 64,5/MWh) saem de `scripts/03_an
 * Backtest com origem móvel mensal de jul/2025 a out/2026, treino desde out/2024 (início do PDP aberto),
   média de 3 sementes.
 * "Dia de corte alto": acima do 3º quartil do alvo no treino de cada mês.
+* Calibração de nível: fator mensal = soma do real / soma do previsto nos 90 dias anteriores ao mês (até D-1,
+  ou D-2 na variante estrita), usando previsões fora da amostra. O backtest roda desde jan/2025 só para
+  produzir essas previsões; as métricas usam apenas jul/2025 a out/2026.

@@ -76,12 +76,31 @@ Features (`previsao.features`):
 | Carga programada de D | por área e SIN, e razão contra 7 dias antes | nenhuma: produzida em D-1 |
 | Calendário | dia da semana, feriado nacional, sazonalidade anual (seno e cosseno) | nenhuma |
 
+**Calibração de nível** (`previsao.fator_calibracao` e `previsao.calibrar_nivel`). Para o mês *m*, com
+`oos` as previsões fora da amostra dos dias anteriores (cada uma feita por um modelo treinado só com dias
+anteriores a ela):
+
+```
+fator[m]        = soma(real) / soma(previsto)   nos 90 dias que terminam em (início de m) - k dias
+previsto_cal[d] = fator[mês de d] x previsto[d]
+```
+
+com `k = 1` (D-1) ou `k = 2` (variante estrita). Razão de somas, e não média de razões, para que dias de
+corte baixo não dominem. Mínimo de 60 dias na janela (senão o fator é 1) e trava em [0,5; 2,0]. O fator é
+o mesmo em todos os dias do mês, então a ordem dos dias dentro do mês não muda. Os parâmetros foram fixados
+antes de rodar a calibração no período de teste (ver README, "Calibração de nível").
+
 **Métricas** (`previsao.metricas`):
 
 * **Erro médio absoluto (MAE):** média de |real − previsto|, em GWh/dia.
 * **Ganho sobre a persistência (skill):** `1 − MAE_modelo / MAE_persistência`. 35% quer dizer que o erro
   médio do modelo é 35% menor que o de "amanhã igual a hoje".
 * **Viés:** `soma(previsto) / soma(real) − 1`. Negativo quer dizer que o modelo subestima o total.
+* **WAPE:** `soma(|real − previsto|) / soma(real)`, o erro percentual ponderado pela energia.
+* **MAPE:** média de |real − previsto| / real, só nos dias com corte real de pelo menos 10 GWh (abaixo disso o
+  erro percentual explode); a coluna `mape_n_dias` diz quantos dias entram.
+* **Spearman:** correlação entre os postos do real e do previsto nos dias de teste. Mede o quanto o modelo
+  ordena bem os dias, sem depender do nível.
 * **Dia de corte alto:** dia com corte acima do 3º quartil do treino daquele mês.
 * **AUC:** probabilidade de o modelo dar uma previsão maior a um dia de corte alto do que a um dia comum
   (0,5 = sorte; 1 = perfeito).
@@ -93,6 +112,9 @@ Features (`previsao.features`):
 * **Fora da amostra, com origem móvel mensal:** para cada mês de jul/2025 a out/2026, o modelo é treinado só
   com dias anteriores ao primeiro dia do mês (treino desde out/2024, início do PDP aberto) e prevê os dias
   daquele mês. São 488 dias de teste, nenhum visto no treino.
+* **Aquecimento da calibração:** o mesmo backtest roda também de jan/2025 a jun/2025, só para haver
+  previsões fora da amostra com que estimar o fator dos primeiros meses de teste. Esses meses não entram
+  nas métricas, e as previsões de jul/2025 em diante são as mesmas com ou sem aquecimento.
 * **O que é conhecido em D-1:** o corte realizado de D-1 é conhecido pelo ONS em tempo real, mas quem não é o
   ONS recebe os arquivos depois. Por isso há a variante **estrita**, que só usa realizados até D-2. Ela quase
   não perde desempenho (31,2 contra 30,6 GWh/dia), o que mostra que o resultado não depende de dados que um
