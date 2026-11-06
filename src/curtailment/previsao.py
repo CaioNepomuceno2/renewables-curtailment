@@ -29,6 +29,8 @@ JANELA_CALIBRACAO = 90         # dias de previsões fora da amostra usados para 
 MIN_DIAS_CALIBRACAO = 60       # com menos dias que isso o fator é 1 (sem calibrar)
 LIMITES_FATOR = (0.5, 2.0)     # trava de segurança; não é ajustada
 PISO_MAPE_GWH = 10.0           # o MAPE ignora dias com corte real abaixo disso (o erro % explode)
+TOL_RANQUEAMENTO = 0.005       # queda máxima aceita no Spearman e na AUC do calibrado
+TOL_MAE_GWH = 1.0              # alta máxima aceita no MAE (GWh/dia) do calibrado
 
 
 def tabela_diaria(diario: pd.DataFrame, razao: pd.DataFrame, carga: pd.DataFrame | None,
@@ -144,6 +146,20 @@ def calibrar_nivel(oos: pd.DataFrame, inicio: str, fim: str, defasagem_min: int 
         alvo.loc[no_mes, "fator"] = fator_calibracao(oos, ultimo, janela, min_dias, limites)
     alvo["pred_cal"] = alvo.pred * alvo.fator
     return alvo
+
+
+def regra_de_aceite(orig, cal, tol_ranqueamento: float = TOL_RANQUEAMENTO, tol_mae_gwh: float = TOL_MAE_GWH) -> dict:
+    """Regra fixada antes de rodar a calibração no teste: o calibrado só vira o padrão se o viés cair em
+    módulo, o ranqueamento (Spearman e AUC) não piorar além da tolerância e o MAE não subir além dela.
+
+    ``orig`` e ``cal`` são as métricas (``metricas``) do modelo original e do calibrado.
+    """
+    r = {"vies_cai": bool(abs(cal["vies_pct"]) < abs(orig["vies_pct"])),
+         "spearman_nao_piora": bool(cal["spearman"] >= orig["spearman"] - tol_ranqueamento),
+         "auc_nao_piora": bool(cal["auc_dia_alto"] >= orig["auc_dia_alto"] - tol_ranqueamento),
+         "mae_nao_sobe_mais_de_1gwh": bool(cal["mae_gwh"] <= orig["mae_gwh"] + tol_mae_gwh)}
+    r["aceito"] = all(r.values())
+    return r
 
 
 def baselines(t: pd.DataFrame, idx: pd.Index, defasagem_min: int = 1) -> pd.DataFrame:

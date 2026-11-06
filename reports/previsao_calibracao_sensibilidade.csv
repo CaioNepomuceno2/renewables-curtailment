@@ -1,0 +1,7 @@
+modelo,janela_dias,padrao,mae_gwh,rmse_gwh,vies_pct,wape_pct,mape_pct,mape_n_dias,correlacao,spearman,skill_vs_persistencia,auc_dia_alto,precisao_top20pct,taxa_dias_altos,passa_regra_de_aceite
+completo,60,False,28.8711,37.577,2.7382,24.095,34.5686,462,0.8812,0.8657,0.384,0.9083,0.9286,0.4508,False
+completo,90,True,29.0584,37.7056,2.7039,24.2513,34.8104,462,0.8813,0.8626,0.38,0.9039,0.949,0.4508,False
+completo,180,False,30.6496,39.5233,3.3789,25.5793,36.6626,462,0.8756,0.8549,0.3461,0.8976,0.9388,0.4508,False
+completo_estrito_D-2,60,False,29.6831,38.6585,2.8433,24.7726,35.8703,462,0.8736,0.8564,0.5315,0.9035,0.949,0.4508,False
+completo_estrito_D-2,90,True,30.0924,39.0554,3.0123,25.1142,36.1901,462,0.8725,0.8538,0.5251,0.899,0.9388,0.4508,False
+completo_estrito_D-2,180,False,31.7191,41.1887,3.8255,26.4718,37.9174,462,0.8658,0.8461,0.4994,0.8931,0.949,0.4508,False

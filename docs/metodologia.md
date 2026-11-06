@@ -115,6 +115,10 @@ antes de rodar a calibração no período de teste (ver README, "Calibração de
 * **Aquecimento da calibração:** o mesmo backtest roda também de jan/2025 a jun/2025, só para haver
   previsões fora da amostra com que estimar o fator dos primeiros meses de teste. Esses meses não entram
   nas métricas, e as previsões de jul/2025 em diante são as mesmas com ou sem aquecimento.
+* **Regra de aceite da calibração** (fixada antes de rodar no teste): o calibrado só vira o padrão se, nas
+  duas variantes (D-1 e D-2), o viés cair em módulo, o Spearman e a AUC não caírem mais de 0,005 e o MAE não
+  subir mais de 1 GWh/dia. A regra é avaliada em `scripts/04_forecast.py` e o resultado fica em
+  `reports/previsao.json` (`calibracao.aceite`).
 * **O que é conhecido em D-1:** o corte realizado de D-1 é conhecido pelo ONS em tempo real, mas quem não é o
   ONS recebe os arquivos depois. Por isso há a variante **estrita**, que só usa realizados até D-2. Ela quase
   não perde desempenho (31,2 contra 30,6 GWh/dia), o que mostra que o resultado não depende de dados que um
@@ -139,6 +143,9 @@ antes de rodar a calibração no período de teste (ver README, "Calibração de
 
 * **Preço:** a régua de R$ 3,9 bi a cada R$ 100/MWh permite trocar o CMO por qualquer outro preço.
 * **Dados disponíveis em D-1:** realizados até D-1 (30,6 GWh/dia) ou até D-2 (31,2 GWh/dia).
+* **Janela do fator de calibração:** 60, 90 (padrão) e 180 dias dão viés de +2,7% a +3,4% e Spearman de
+  0,855 a 0,866 no D-1, e nenhuma passa na regra de aceite
+  (`reports/previsao_calibracao_sensibilidade.csv`). Uma janela de 30 dias não calibra nada com o mínimo de 60 dias.
 * **Grupos de features:** só histórico (38,2), histórico + carga (39,8), histórico + carga + PDP (30,6). O
   ganho vem do PDP; a carga programada não ajuda.
 
@@ -150,5 +157,32 @@ antes de rodar a calibração no período de teste (ver README, "Calibração de
   de energia no sistema (ENE). A resposta é diferente: reforço de rede no primeiro caso; armazenamento,
   flexibilidade e demanda no segundo.
 * **O previsor ordena bem os dias e subestima o nível.** Para decidir *em que dias* agir (manutenção,
-  cobertura), ele está pronto; para estimar *quanta energia* será cortada, recalibre o nível com os dados
-  mais recentes.
+  cobertura), ele está pronto. Para estimar *quanta energia* será cortada, o nível do total ainda é incerto:
+  o fator de nível tirou o viés do total (de -13,0% para +2,7%), mas custou ranqueamento (Spearman de 0,870
+  para 0,863) e errou até 40% em meses de mudança de regime (README, seção 5). Use o calibrado só para o
+  total, nunca para ordenar dias, e trate o total como ordem de grandeza.
+
+## 9. Reprodução e revisão dos dados do ONS
+
+Em 06/11/2026 o pipeline (`01` a `06`) foi rodado de novo, com o código da versão anterior e os dados
+baixados nessa data, antes de qualquer mudança de método. O objetivo era separar o que mudou porque o ONS
+revisa os dados do que mudou por causa da calibração de nível.
+
+* **Só out/2026 foi revisado:** eólica de 2.581,4 para 2.671,9 GWh (+3,5%) e solar de 1.420,6 para
+  1.448,4 GWh (+2,0%). Os outros 60 meses são idênticos.
+* **As previsões de jul/2025 a set/2026 saem idênticas** (todas as colunas de `previsao_diaria.csv`); só as
+  de out/2026 mudam, porque o realizado do mês mudou. Portanto não há deriva de bibliotecas.
+
+| Número | Versão anterior do README | Regenerado em 06/11/2026 (código inalterado) |
+|---|---|---|
+| Corte nos últimos 12 meses | 39.145 GWh | 39.264 GWh (+0,30%) |
+| % da geração possível perdida | 21,74% | 21,79% |
+| Valor pelo CMO | R$ 2.493,9 milhões | R$ 2.494,9 milhões |
+| Corte médio real no teste | 119,58 GWh/dia | 119,82 GWh/dia |
+| Modelo completo: erro médio | 30,68 GWh/dia | 30,59 GWh/dia |
+| Modelo completo: viés | -12,85% | -13,01% |
+| Modelo completo: AUC | 0,9133 | 0,9134 |
+
+Os números do README já usam a versão regenerada. O efeito da calibração (seção 5 do README) é medido
+contra ela, sobre os mesmos dados: as colunas e linhas do modelo original em `reports/` não mudam com a
+calibração, que só acrescenta colunas, linhas e arquivos.

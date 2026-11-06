@@ -92,6 +92,46 @@ um modelo treinado só com os dias anteriores. São 488 dias (jul/2025 a out/202
 alto. Os 20% de dias que o modelo aponta como piores tiveram corte médio de 224,1 GWh/dia, quase o dobro da
 média (119,8), e concentraram 38% de toda a energia cortada no período de teste.
 
+### 5. Dá para corrigir o nível do total? Só em parte
+
+O modelo subestima o total (viés de -13,0% no período de teste). Testei o fator de nível descrito em
+[Calibração de nível](#calibração-de-nível-método-fixado-antes-de-rodar-o-teste), com a regra de aceite
+fixada antes de ver o resultado. **A regra não foi cumprida e o padrão continua sendo o modelo original.**
+
+![calibração de nível](reports/figures/06_calibracao.png)
+
+| Jul/2025 a out/2026 (488 dias) | Viés do total | Erro médio (GWh/dia) | WAPE | MAPE | Spearman | AUC | Precisão nos 20% apontados |
+|---|---|---|---|---|---|---|---|
+| Original, informação de D-1 | -13,0% | 30,6 | 25,5% | 32,9% | 0,870 | 0,913 | 94,9% |
+| Calibrado, informação de D-1 | **+2,7%** | **29,1** | **24,3%** | 34,8% | 0,863 | 0,904 | 94,9% |
+| Original, estrito (D-2) | -12,7% | 31,2 | 26,1% | 33,5% | 0,861 | 0,909 | 95,9% |
+| Calibrado, estrito (D-2) | **+3,0%** | **30,1** | **25,1%** | 36,2% | 0,854 | 0,899 | 93,9% |
+
+O WAPE é o erro absoluto total dividido pelo corte total. O MAPE ignora os dias com corte real abaixo de
+10 GWh (26 dos 488) e o Spearman compara os postos de real e previsto em todos os dias.
+
+* **O que melhorou:** o viés do total caiu de -13,0% para +2,7% (D-1) e de -12,7% para +3,0% (D-2). O erro
+  médio por dia caiu 1,5 GWh/dia no D-1 e 1,1 no D-2, e o WAPE também.
+* **O que piorou:** o ranqueamento. O Spearman caiu de 0,870 para 0,863 e a AUC de 0,913 para 0,904 (no D-2,
+  de 0,861 para 0,854 e de 0,909 para 0,899), mais que os 0,005 de tolerância fixados antes. O MAPE também
+  subiu. Por isso o calibrado não vira o padrão. Dentro de cada mês a ordem dos dias não muda (o fator é o
+  mesmo no mês inteiro, e há teste para isso); a piora vem de comparar meses com fatores diferentes.
+* **O fator chega atrasado:** em mai e jun/2026 ele vinha de meses de subestimação forte (fator de 1,54 e
+  1,30), mas o modelo original já tinha quase parado de errar para baixo (viés mensal de -8,7% e +7,9%), e o
+  calibrado passou para +40% nos dois meses. Por outro lado, o erro mensal médio do total caiu de 19,7% para
+  14,5%, e os meses com erro acima de 20% passaram de 7 para 3 (o pior mês foi -47,9% no original, em
+  dez/2025, e +40,4% no calibrado). Esses números por mês foram calculados depois de ver o resultado e não
+  fazem parte da regra de aceite (`reports/previsao_calibracao_mensal.csv`).
+* **Não depende da janela:** com 60 e 180 dias o resultado é do mesmo tipo (viés de +2,7% a +3,4% e Spearman
+  de 0,855 a 0,866 no D-1) e nenhuma janela passa na regra (`reports/previsao_calibracao_sensibilidade.csv`).
+  A janela de 30 dias não entra na tabela: com o mínimo de 60 dias o fator seria sempre 1, e a linha era
+  idêntica à do modelo original.
+
+**O que isso significa:** para escolher *quais dias* são piores, use o modelo original. Para aproximar o
+*total* do corte, o fator ajuda em média, mas não segura o nível mês a mês quando o regime muda, e custa um
+pouco de ranqueamento. Mais histórico (o PDP aberto só existe desde out/2024) ou um fator que reaja mais
+rápido são o caminho natural, e este projeto não testou nenhum dos dois.
+
 ## Na prática: o que muda para quem decide
 
 ### O problema hoje
@@ -148,8 +188,9 @@ entram nesse cálculo.
 
 ### Limites de uso
 * Não usar o valor pelo CMO como perda de receita de uma usina, nem como valor de indenização.
-* Não usar o previsor para estimar o total de energia sem recalibrar o nível: ele subestima o total em 13%
-  no período de teste.
+* Não usar o previsor para estimar o total de energia sem checar o nível: o modelo original subestima o total
+  em 13,0% no período de teste. O fator de nível (seção 5) leva o viés do total a +2,7%, mas errou até 40%
+  em meses em que o regime mudou; trate o total previsto como ordem de grandeza.
 * O previsor é do SIN como um todo; para uma usina específica, ele precisa ser retreinado com os dados dela.
 * A geração de referência é estimada pelo ONS; o corte herda o erro dessa estimativa.
 
@@ -197,7 +238,7 @@ original continua no repositório, lado a lado com o calibrado.
   completas, o que tira o efeito do dia da semana), mínimo de 60 dias com previsão (com menos, o fator é 1),
   trava do fator em [0,5; 2,0] e piso de 10 GWh/dia para o MAPE (abaixo disso o erro percentual explode).
   `reports/previsao_calibracao_sensibilidade.csv` mostra outras janelas só para checar a robustez; o padrão
-  não é trocado por causa dele.
+  não é trocado por causa dele. O fator e o viés de cada mês estão em `reports/previsao_calibracao_mensal.csv`.
 * **Regra de aceite, também fixada antes:** o calibrado só vira o padrão para estimar energia se, nas duas
   variantes (D-1 e D-2), o viés cair em módulo, o Spearman e a AUC não caírem mais de 0,005 e o MAE não subir
   mais de 1 GWh/dia. Se alguma condição falhar, o padrão fica como estava e o resultado é publicado assim
@@ -242,11 +283,17 @@ pytest
 * **Disponibilidade dos dados para quem não é o ONS:** o corte realizado de D-1 e o PDP existem em D-1 na
   operação, mas os arquivos abertos são publicados depois. Por isso a variante estrita usa realizados só até
   D-2. Ela quase não perde desempenho (31,2 contra 30,6 GWh/dia).
-* **O modelo subestima o total** (viés de -13% no período de teste), porque o corte cresceu ao longo do
-  período e árvores de decisão não extrapolam tendência. Para ranquear dias isso pesa pouco; para estimar
-  energia, vale calibrar o nível.
+* **O modelo subestima o total** (viés de -13,0% no período de teste). A hipótese é que o corte cresceu de um
+  ano para o outro e árvores de decisão não extrapolam tendência, mas isso não foi testado isoladamente:
+  o viés não é uniforme (de -31% a -48% em dez/2025 a mar/2026 e de -6% a +8% de jul a out/2026). Um fator de
+  nível por mês, estimado só com previsões anteriores, leva o viés do total a +2,7%, mas piora o
+  ranqueamento dos dias além da tolerância fixada antes (Spearman de 0,870 para 0,863, AUC de 0,913 para
+  0,904) e superestima em até 40% os meses em que o regime muda (seção 5). Por isso o padrão continua
+  sendo o modelo original. Para ranquear dias isso pesa pouco; para estimar energia, o nível do total ainda
+  não está resolvido.
 * **Treino curto:** o PDP aberto só existe desde out/2024, então o primeiro mês de teste foi previsto com
-  9 meses de histórico.
+  9 meses de histórico, e o primeiro fator de calibração vem de previsões de modelos treinados com 6 a 8
+  meses.
 
 ---
 Autor: **Caio Nepomuceno**. Dados públicos do ONS. Projeto independente, sem vínculo com o ONS, a CCEE ou

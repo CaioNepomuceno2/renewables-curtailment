@@ -122,3 +122,17 @@ def test_metricas_novas_mape_wape_spearman():
     assert m["mape_pct"] == pytest.approx(100 * np.mean([0.5, 0.0, 0.1]))
     assert m["wape_pct"] == pytest.approx(100 * 21 / 165)
     assert m["spearman"] == pytest.approx(1.0)
+
+
+def test_regra_de_aceite():
+    orig = {"vies_pct": -13.0, "spearman": 0.870, "auc_dia_alto": 0.913, "mae_gwh": 30.6}
+    bom = {"vies_pct": 2.7, "spearman": 0.868, "auc_dia_alto": 0.911, "mae_gwh": 29.1}
+    assert P.regra_de_aceite(orig, bom)["aceito"]
+    # ranqueamento cai mais que a tolerância (0,005): rejeita, mesmo com viés e MAE melhores
+    rank = P.regra_de_aceite(orig, {**bom, "spearman": 0.863})
+    assert not rank["aceito"] and not rank["spearman_nao_piora"] and rank["vies_cai"] and rank["mae_nao_sobe_mais_de_1gwh"]
+    assert not P.regra_de_aceite(orig, {**bom, "auc_dia_alto": 0.904})["auc_nao_piora"]
+    # viés que só troca de sinal sem diminuir em módulo não conta como queda
+    assert not P.regra_de_aceite(orig, {**bom, "vies_pct": 13.5})["vies_cai"]
+    # MAE sobe mais de 1 GWh/dia
+    assert not P.regra_de_aceite(orig, {**bom, "mae_gwh": 31.7})["mae_nao_sobe_mais_de_1gwh"]

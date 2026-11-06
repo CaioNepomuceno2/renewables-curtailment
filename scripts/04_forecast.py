@@ -17,11 +17,14 @@ from curtailment import previsao as P
 INICIO_TREINO, INICIO_TESTE, FIM_TESTE = "2024-10-01", "2025-07-01", "2026-10-31"
 INICIO_CALIB = "2025-01-01"  # aquecimento: previsões fora da amostra só para estimar o fator; fora das métricas
 CALIBRADOS = ("completo", "completo_estrito_D-2")
-JANELAS_SENSIBILIDADE = (30, 60, 90, 180)  # só mostra robustez; o padrão é P.JANELA_CALIBRACAO
-# regra de aceite, fixada antes de ver o teste: o calibrado vira o padrão para estimar energia se o viés
-# cair, o ranqueamento não piorar (Spearman e AUC com queda de no máximo 0,005) e o MAE não subir mais de
-# 1 GWh/dia, nas duas variantes (D-1 e D-2)
-TOL_RANQUEAMENTO, TOL_MAE_GWH = 0.005, 1.0
+# só mostra robustez; o padrão é P.JANELA_CALIBRACAO. Uma janela de 30 dias fica de fora: com o mínimo de
+# 60 dias o fator seria sempre 1 (retirada depois de ver que a linha era idêntica ao modelo original)
+JANELAS_SENSIBILIDADE = (60, 90, 180)
+# regra de aceite (previsao.regra_de_aceite), fixada antes de ver o teste: o calibrado vira o padrão para
+# estimar energia se o viés cair, o ranqueamento não piorar (Spearman e AUC com queda de no máximo 0,005) e o
+# MAE não subir mais de 1 GWh/dia, nas duas variantes (D-1 e D-2)
+
+
 
 diario = pd.read_parquet(INTERIM / "diario_total.parquet")
 diario["dia"] = pd.to_datetime(diario.dia).dt.date.astype(str)
@@ -118,7 +121,19 @@ for nome in CALIBRADOS:
     por_mes["vies_cal_pct"] = 100 * (por_mes.pred_cal_gwh / por_mes.real_gwh - 1)
     por_mes.insert(0, "modelo", nome)
     mensal.append(por_mes.reset_index(names="mes"))
-pd.concat(mensal).round(4).to_csv(REPORTS / "previsao_calibracao_mensal.csv", index=False)
+mensal = pd.concat(mensal)
+mensal.round(4).to_csv(REPORTS / "previsao_calibracao_mensal.csv", index=False)
+# diagnóstico escrito depois de ver o resultado: não faz parte da regra de aceite
+diag_mensal = {}
+for nome, g in mensal.groupby("modelo"):
+    diag_mensal[nome] = {
+        "erro_mensal_medio_pct_original": round(float(g.vies_pct.abs().mean()), 2),
+        "erro_mensal_medio_pct_calibrado": round(float(g.vies_cal_pct.abs().mean()), 2),
+        "pior_mes_pct_original": round(float(g.vies_pct.iloc[g.vies_pct.abs().argmax()]), 2),
+        "pior_mes_pct_calibrado": round(float(g.vies_cal_pct.iloc[g.vies_cal_pct.abs().argmax()]), 2),
+        "meses_com_erro_acima_de_20pct_original": int((g.vies_pct.abs() > 20).sum()),
+        "meses_com_erro_acima_de_20pct_calibrado": int((g.vies_cal_pct.abs() > 20).sum()),
+        "n_meses": len(g)}
 
 # sensibilidade à janela do fator (o padrão fica em P.JANELA_CALIBRACAO, fixado antes do teste)
 sens = []
@@ -127,21 +142,16 @@ for nome in CALIBRADOS:
     ref = P.metricas(p.real, P.baselines(t, p.index, k).persistencia)["mae_gwh"]
     for w in JANELAS_SENSIBILIDADE:
         cal = P.calibrar_nivel(oos_all[nome], INICIO_TESTE, FIM_TESTE, k, janela=w)
-        sens.append({"modelo": nome, "janela_dias": w, "padrao": w == P.JANELA_CALIBRACAO,
-                     **P.metricas(p.real, cal.pred_cal, ref, p.limiar_alto)})
+        mc = P.metricas(p.real, cal.pred_cal, ref, p.limiar_alto)
+        sens.append({"modelo": nome, "janela_dias": w, "padrao": w == P.JANELA_CALIBRACAO, **mc,
+                     "passa_regra_de_aceite": P.regra_de_aceite(met.set_index("metodo").loc[f"modelo_{nome}"], mc)["aceito"]})
 pd.DataFrame(sens).round(4).to_csv(REPORTS / "previsao_calibracao_sensibilidade.csv", index=False)
 
 # regra de aceite
 mm = met.set_index("metodo")
 aceite = {}
 for nome in CALIBRADOS:
-    a, c = mm.loc[f"modelo_{nome}"], mm.loc[f"modelo_{nome}_calibrado"]
-    aceite[nome] = {
-        "vies_cai": bool(abs(c.vies_pct) < abs(a.vies_pct)),
-        "spearman_nao_piora": bool(c.spearman >= a.spearman - TOL_RANQUEAMENTO),
-        "auc_nao_piora": bool(c.auc_dia_alto >= a.auc_dia_alto - TOL_RANQUEAMENTO),
-        "mae_nao_sobe_mais_de_1gwh": bool(c.mae_gwh <= a.mae_gwh + TOL_MAE_GWH)}
-    aceite[nome]["aceito"] = all(aceite[nome].values())
+    aceite[nome] = P.regra_de_aceite(mm.loc[f"modelo_{nome}"], mm.loc[f"modelo_{nome}_calibrado"])
 print(json.dumps(aceite, indent=1))
 
 # importância das features no modelo completo treinado com tudo até o fim do teste
@@ -157,6 +167,7 @@ print((imp / imp.sum()).head(12).round(3).to_string())
     "n_dias_teste": len(p_base), "corte_medio_real_gwh_dia": round(float(p_base.real.mean()), 2),
     "calibracao": {"inicio_aquecimento": INICIO_CALIB, "janela_dias": P.JANELA_CALIBRACAO,
                    "min_dias": P.MIN_DIAS_CALIBRACAO, "limites_fator": list(P.LIMITES_FATOR),
-                   "piso_mape_gwh": P.PISO_MAPE_GWH, "tolerancia_ranqueamento": TOL_RANQUEAMENTO,
-                   "tolerancia_mae_gwh": TOL_MAE_GWH, "aceite": aceite},
+                   "piso_mape_gwh": P.PISO_MAPE_GWH, "tolerancia_ranqueamento": P.TOL_RANQUEAMENTO,
+                   "tolerancia_mae_gwh": P.TOL_MAE_GWH, "aceite": aceite,
+                   "diagnostico_mensal_posterior_ao_resultado": diag_mensal},
     "metricas": met.round(4).to_dict("records")}, indent=2, ensure_ascii=False), encoding="utf-8")
