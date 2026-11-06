@@ -6,6 +6,8 @@
   "corte_gwh_12m": 39263.5,
   "pct_perdida_12m": 21.79,
   "valor_cmo_rs_mi_12m": 2494.9,
+  "pct_corte_sem_cmo_12m": 1.42,
+  "cmo_medio_ponderado_rs_mwh_12m": 64.5,
   "por_fonte_12m": [
     {
       "fonte": "eolica",

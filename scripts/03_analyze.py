@@ -31,11 +31,14 @@ razao12["descricao"] = razao12.razao.map(RAZOES)
 razao12.round(4).to_csv(REPORTS / "por_razao_12m.csv", index=False)
 
 tot = total12[["corte_gwh", "potencial_gwh", "valor_cmo_rs_mi"]].sum()
+cmo12 = A.cobertura_cmo(semi, filtro12)
 resumo = {
     "periodo_12m": U12,
     "corte_gwh_12m": round(float(tot.corte_gwh), 1),
     "pct_perdida_12m": round(float(100 * tot.corte_gwh / tot.potencial_gwh), 2),
     "valor_cmo_rs_mi_12m": round(float(tot.valor_cmo_rs_mi), 1),
+    "pct_corte_sem_cmo_12m": round(cmo12["pct_corte_sem_cmo"], 2),
+    "cmo_medio_ponderado_rs_mwh_12m": round(cmo12["cmo_medio_ponderado_rs_mwh"], 1),
     "por_fonte_12m": total12.round(2).to_dict("records"),
     "por_razao_12m": razao12.round(2).to_dict("records"),
     "anual": anual.round(2).to_dict("records"),

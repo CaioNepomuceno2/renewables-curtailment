@@ -25,6 +25,19 @@ def resumo(semi: Path, por: list[str], filtro: str = "true") -> pd.DataFrame:
     return df
 
 
+def cobertura_cmo(semi: Path, filtro: str = "true") -> dict:
+    """Fração da energia cortada sem CMO (entra com valor zero) e CMO médio ponderado pela energia, em R$/MWh.
+
+    A média considera só a energia que tem CMO; as semi-horas sem CMO ficam de fora do denominador.
+    """
+    r = _q(f"""
+        select 100 * coalesce(sum(corte_mwh) filter (where cmo_rs_mwh is null), 0) / sum(corte_mwh) as pct_sem_cmo,
+               sum(valor_cmo_rs) / sum(corte_mwh) filter (where cmo_rs_mwh is not null) as cmo_medio
+        from read_parquet('{semi}') where {filtro}
+    """).iloc[0]
+    return {"pct_corte_sem_cmo": float(r.pct_sem_cmo), "cmo_medio_ponderado_rs_mwh": float(r.cmo_medio)}
+
+
 def top_conjuntos(semi: Path, inicio: str, fim: str, n: int = 15) -> pd.DataFrame:
     df = _q(f"""
         with b as (select * from read_parquet('{semi}')

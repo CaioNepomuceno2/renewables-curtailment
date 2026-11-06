@@ -26,7 +26,8 @@ e a verificada (mínimo zero), **só nos períodos com limitação**. Um patamar
 
 * Recalculado a partir das colunas brutas (`build.energia_cortada_mwh` e `build.semihoraria`), porque nem
   todos os arquivos trazem `val_geracaonaorealizadaapurada`. Conferência em ago/2025 (eólica): 3.138,9 GWh no
-  cálculo e no campo apurado.
+  cálculo e no campo apurado. É uma conferência manual com o arquivo bruto completo (repetida em
+  06/11/2026), porque o pipeline guarda só as colunas enxutas.
 * Fora dos patamares limitados a diferença referência - verificada **não** é corte (pode ser erro da própria
   referência ou indisponibilidade da usina).
 * Patamares limitados sem razão informada viram `NI`; somam menos de 1 MWh nos últimos 12 meses.
@@ -41,6 +42,7 @@ enviada à CCEE para os encargos de serviço do sistema (ESS) por constrained-of
 
 `corte_mwh x CMO` do subsistema no mesmo `din_instante`. O CMO vem como texto em alguns anos e é convertido.
 Faltou CMO para 1,4% da energia cortada nos últimos 12 meses; essas meias horas entram com valor zero.
+A fração sem CMO e o CMO médio ponderado (R$ 64,5/MWh) saem de `scripts/03_analyze.py` para `reports/resumo.json`.
 
 ## Previsão
 

@@ -163,14 +163,15 @@ Detalhes em [`docs/dados.md`](docs/dados.md). As principais:
 * **Energia cortada = geração não realizada apurada (GNRa) do ONS:** `max(referência - verificada, 0)`, só
   nos patamares em que o ONS limitou a usina (`val_geracaolimitada` não nulo), em MWmed x 0,5 h. Recalculo
   a partir das colunas brutas porque os arquivos antigos não trazem o campo apurado; em ago/2025 os dois
-  dão exatamente 3.138,9 GWh.
+  dão exatamente 3.138,9 GWh (conferência manual com o arquivo bruto completo, refeita em 06/11/2026: o
+  pipeline guarda só as colunas enxutas).
 * **% perdida = cortada / (verificada + cortada)**, a geração possível, sem depender de referência fora dos
   patamares limitados.
 * **Valoração pelo CMO**, o custo marginal de operação semi-horário do subsistema no instante do corte. É
   o valor da energia para o sistema, e é baixo justamente quando sobra energia: a média ponderada nos últimos
-  12 meses foi de R$ 64,5/MWh, e em 2023 ficou perto de zero. Não é a perda de receita das usinas, que depende
+  12 meses foi de R$ 64,5/MWh (`reports/resumo.json`), e em 2023 ficou perto de zero. Não é a perda de receita das usinas, que depende
   de contratos e do ressarcimento. Como régua: **a cada R$ 100/MWh, os 39,3 TWh valem R$ 3,9 bi.** Faltou
-  CMO para 1,4% da energia cortada nos últimos 12 meses, que entrou com valor zero.
+  CMO para 1,4% da energia cortada nos últimos 12 meses (`reports/resumo.json`), que entrou com valor zero.
 * **Previsão x programado do PDP:** o nome da usina no PDP não identifica a fonte de forma confiável, então
   uso o agregado eólica + solar. O corte programado é a soma de `max(previsão - programado, 0)` por usina.
 
