@@ -118,10 +118,11 @@ O WAPE é o erro absoluto total dividido pelo corte total. O MAPE ignora os dias
   mesmo no mês inteiro, e há teste para isso); a piora vem de comparar meses com fatores diferentes.
 * **O fator chega atrasado:** em mai e jun/2026 ele vinha de meses de subestimação forte (fator de 1,54 e
   1,30), mas o modelo original já tinha quase parado de errar para baixo (viés mensal de -8,7% e +7,9%), e o
-  calibrado passou para +40% nos dois meses. Por outro lado, o erro mensal médio do total caiu de 19,7% para
-  14,5%, e os meses com erro acima de 20% passaram de 7 para 3 (o pior mês foi -47,9% no original, em
-  dez/2025, e +40,4% no calibrado). Esses números por mês foram calculados depois de ver o resultado e não
-  fazem parte da regra de aceite (`reports/previsao_calibracao_mensal.csv`).
+  calibrado (D-1) passou para +40% nos dois meses; no D-2 o pior mês foi +48,5%, em jun/2026. Por outro lado,
+  o erro mensal médio do total caiu de 19,7% para 14,5% no D-1, e os meses com erro acima de 20% passaram de
+  7 para 3 (o pior mês foi -47,9% no original, em dez/2025, e +40,4% no calibrado). Esses números por mês
+  foram calculados depois de ver o resultado e não fazem parte da regra de aceite
+  (`reports/previsao_calibracao_mensal.csv`).
 * **Não depende da janela:** com 60 e 180 dias o resultado é do mesmo tipo (viés de +2,7% a +3,4% e Spearman
   de 0,855 a 0,866 no D-1) e nenhuma janela passa na regra (`reports/previsao_calibracao_sensibilidade.csv`).
   A janela de 30 dias não entra na tabela: com o mínimo de 60 dias o fator seria sempre 1, e a linha era
@@ -190,7 +191,7 @@ entram nesse cálculo.
 * Não usar o valor pelo CMO como perda de receita de uma usina, nem como valor de indenização.
 * Não usar o previsor para estimar o total de energia sem checar o nível: o modelo original subestima o total
   em 13,0% no período de teste. O fator de nível (seção 5) leva o viés do total a +2,7%, mas errou até 40%
-  em meses em que o regime mudou; trate o total previsto como ordem de grandeza.
+  (49% no D-2) em meses em que o regime mudou; trate o total previsto como ordem de grandeza.
 * O previsor é do SIN como um todo; para uma usina específica, ele precisa ser retreinado com os dados dela.
 * A geração de referência é estimada pelo ONS; o corte herda o erro dessa estimativa.
 
@@ -288,7 +289,7 @@ pytest
   o viés não é uniforme (de -31% a -48% em dez/2025 a mar/2026 e de -6% a +8% de jul a out/2026). Um fator de
   nível por mês, estimado só com previsões anteriores, leva o viés do total a +2,7%, mas piora o
   ranqueamento dos dias além da tolerância fixada antes (Spearman de 0,870 para 0,863, AUC de 0,913 para
-  0,904) e superestima em até 40% os meses em que o regime muda (seção 5). Por isso o padrão continua
+  0,904) e superestima em até 40% (49% no D-2) os meses em que o regime muda (seção 5). Por isso o padrão continua
   sendo o modelo original. Para ranquear dias isso pesa pouco; para estimar energia, o nível do total ainda
   não está resolvido.
 * **Treino curto:** o PDP aberto só existe desde out/2024, então o primeiro mês de teste foi previsto com

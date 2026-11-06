@@ -159,7 +159,7 @@ antes de rodar a calibração no período de teste (ver README, "Calibração de
 * **O previsor ordena bem os dias e subestima o nível.** Para decidir *em que dias* agir (manutenção,
   cobertura), ele está pronto. Para estimar *quanta energia* será cortada, o nível do total ainda é incerto:
   o fator de nível tirou o viés do total (de -13,0% para +2,7%), mas custou ranqueamento (Spearman de 0,870
-  para 0,863) e errou até 40% em meses de mudança de regime (README, seção 5). Use o calibrado só para o
+  para 0,863) e errou até 40% (49% no D-2) em meses de mudança de regime (README, seção 5). Use o calibrado só para o
   total, nunca para ordenar dias, e trate o total como ordem de grandeza.
 
 ## 9. Reprodução e revisão dos dados do ONS
